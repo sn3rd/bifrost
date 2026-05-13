@@ -2,30 +2,48 @@
 
 {% block content %}
 
-<h2>Moderator View</h2>
-
 {% if item %}
 
-<h3 class="title">{{ item[1] }}</h3>
+<div class="card">
 
-<div>
-    <button>Spam ({{ item[4] }})</button>
-    <button>Not sure ({{ item[5] }})</button>
-    <button>Not spam ({{ item[6] }})</button>
+    <div class="title">{{ item[1] }}</div>
+
+    <div class="meta">
+        Bug ID: {{ item[0] }} ·
+        <a href="{{ item[3] }}" target="_blank">Open bug</a>
+    </div>
+
+    <!-- MODERATOR VOTE STATS -->
+    <table>
+        <tr>
+            <th>Spam</th>
+            <th>Not sure</th>
+            <th>Not spam</th>
+        </tr>
+        <tr>
+            <td>{{ item[4] }}</td>
+            <td>{{ item[5] }}</td>
+            <td>{{ item[6] }}</td>
+        </tr>
+    </table>
+
+    <!-- BUTTONS TOP -->
+    <form method="post" action="/submit_moderator/{{ item[0] }}">
+        <div class="actions">
+            <button class="ham" name="verdict" value="not spam">Not Spam</button>
+            <button class="unsure" name="verdict" value="not sure">Not sure</button>
+            <button class="spam" name="verdict" value="spam">Definitely spam</button>
+        </div>
+    </form>
+
+    <div class="body">
+        {{ item[2] }}
+    </div>
+
 </div>
 
-<p>{{ item[2] }}</p>
-
-<form method="post" action="/submit_moderator/{{ item[0] }}">
-    <button name="verdict" value="spam">Spam</button>
-    <button name="verdict" value="not sure">Not sure</button>
-    <button name="verdict" value="not spam">Not Spam</button>
-</form>
-
-<a href="{{ item[3] }}" target="_blank">View Bug</a>
-
 {% else %}
-<p>No items to moderate.</p>
+<p>No items left for moderation.</p>
 {% endif %}
 
 {% endblock %}

@@ -2,46 +2,36 @@
 
 {% block content %}
 
-<style>
-.card {
-    max-width: 800px;
-}
-.title {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.buttons {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-</style>
-
 {% if item %}
 
 <div class="card">
 
-<h2 class="title">{{ item[1] }}</h2>
+    <div class="title">{{ item[1] }}</div>
 
-<form method="post" action="/submit_review/{{ item[0] }}">
-    <input type="hidden" name="user" value="{{ user }}">
-
-    <div class="buttons">
-        <button name="verdict" value="not spam">Not Spam</button>
-        <button name="verdict" value="not sure">Not sure</button>
-        <button name="verdict" value="spam">Definitely spam</button>
+    <div class="meta">
+        Bug ID: {{ item[0] }} ·
+        <a href="{{ item[3] }}" target="_blank">Open bug</a>
     </div>
-</form>
 
-<p>{{ item[2] }}</p>
+    <!-- BUTTONS MOVED TO TOP -->
+    <form method="post" action="/submit_review/{{ item[0] }}">
+        <input type="hidden" name="user" value="{{ user }}">
 
-<a href="{{ item[3] }}" target="_blank">View Bug</a>
+        <div class="actions">
+            <button class="ham" name="verdict" value="not spam">Not Spam</button>
+            <button class="unsure" name="verdict" value="not sure">Not sure</button>
+            <button class="spam" name="verdict" value="spam">Definitely spam</button>
+        </div>
+    </form>
+
+    <div class="body">
+        {{ item[2] }}
+    </div>
 
 </div>
 
 {% else %}
-<p>No items left.</p>
+<p>No items left to review.</p>
 {% endif %}
 
 {% endblock %}
