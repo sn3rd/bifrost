@@ -15,24 +15,48 @@
 
     {% if item %}
 
-        <div class="title">{{ item[1] }}</div>
-
-        <div class="meta">
-            <a href="{{ item[3] }}" target="_blank">View bug</a>
-        </div>
-
-        <div class="body">{{ item[2] }}</div>
-
+        <!-- ACTIONS FIRST -->
         <form method="post" action="/submit_review/{{ item[0] }}">
+
             <div class="actions">
-                <button name="verdict" value="not spam" class="ham">Not Spam</button>
-                <button name="verdict" value="not sure" class="unsure">Not Sure</button>
-                <button name="verdict" value="spam" class="spam">Spam</button>
+                <button name="verdict" value="not spam" class="ham">
+                    Not Spam
+                </button>
+
+                <button name="verdict" value="not sure" class="unsure">
+                    Not Sure
+                </button>
+
+                <button name="verdict" value="spam" class="spam">
+                    Spam
+                </button>
             </div>
+
         </form>
 
+        <!-- TITLE -->
+        <div class="title">
+            {{ item[1] }}
+        </div>
+
+        <!-- META -->
+        <div class="meta">
+            <a href="{{ item[3] }}" target="_blank">
+                View bug
+            </a>
+        </div>
+
+        <!-- BODY -->
+        <div class="body">
+            {{ item[2] }}
+        </div>
+
     {% else %}
-        <div class="center">No more items to review 🎉</div>
+
+        <div class="center">
+            No more items to review 🎉
+        </div>
+
     {% endif %}
 
 </div>

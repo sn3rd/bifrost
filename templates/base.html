@@ -4,6 +4,7 @@
     <title>Launchpad Moderation</title>
 
     <style>
+
         body {
             margin: 0;
             font-family: Arial, sans-serif;
@@ -14,11 +15,11 @@
 
         .container {
             width: 100%;
-            max-width: 750px;
+            max-width: 760px;
             padding: 20px;
         }
 
-        /* ---------------- LOGO ---------------- */
+        /* LOGO */
 
         .logo {
             display: flex;
@@ -27,10 +28,10 @@
         }
 
         .logo img {
-            height: 70px;
+            height: 80px;
         }
 
-        /* ---------------- NAV ---------------- */
+        /* NAV */
 
         .nav {
             display: flex;
@@ -46,16 +47,16 @@
             color: #333;
         }
 
-        /* ---------------- USER BAR ---------------- */
+        /* USER BAR */
 
         .userbar {
             text-align: center;
             font-size: 13px;
             color: #555;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
-        /* ---------------- PROGRESS ---------------- */
+        /* PROGRESS */
 
         .progress-wrap {
             margin: 10px 0 15px 0;
@@ -71,7 +72,11 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #34c759, #30d158);
+            background: linear-gradient(
+                90deg,
+                #34c759,
+                #30d158
+            );
         }
 
         .progress-text {
@@ -81,55 +86,78 @@
             margin-top: 5px;
         }
 
-        /* ---------------- CARD ---------------- */
+        /* CARD */
 
         .card {
             background: white;
             border-radius: 18px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-            padding: 16px;
+            padding: 18px;
         }
 
+        /* TITLE */
+
         .title {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            word-break: break-word;
         }
+
+        /* META */
 
         .meta {
             font-size: 12px;
             color: #888;
             margin-top: 6px;
+            margin-bottom: 10px;
         }
 
+        /* BODY */
+
         .body {
-            margin-top: 12px;
+            margin-top: 14px;
             font-size: 14px;
             line-height: 1.5;
             white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
 
-        /* ---------------- ACTION BUTTONS ---------------- */
+        /* ACTION BUTTONS */
 
         .actions {
             display: flex;
             gap: 10px;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
 
         button {
             flex: 1;
-            padding: 12px;
+            padding: 14px;
             border: none;
             border-radius: 12px;
             font-weight: bold;
+            font-size: 14px;
             cursor: pointer;
         }
 
-        .spam { background: #ff3b30; color: white; }
-        .unsure { background: #ffcc00; color: black; }
-        .ham { background: #34c759; color: white; }
+        .spam {
+            background: #ff3b30;
+            color: white;
+        }
 
-        /* ---------------- FORM INPUTS ---------------- */
+        .unsure {
+            background: #ffcc00;
+            color: black;
+        }
+
+        .ham {
+            background: #34c759;
+            color: white;
+        }
+
+        /* FORMS */
 
         input {
             width: 100%;
@@ -139,12 +167,17 @@
             border: 1px solid #ccc;
         }
 
-        /* ---------------- UTILS ---------------- */
+        /* UTILS */
 
-        .center { text-align: center; }
-        .danger { color: red; }
+        .center {
+            text-align: center;
+        }
 
-        /* ---------------- LEADERBOARD ---------------- */
+        .danger {
+            color: red;
+        }
+
+        /* LEADERBOARD */
 
         .leaderboard-table {
             width: 100%;
@@ -182,6 +215,27 @@
             width: 120px;
         }
 
+        /* MODERATOR VOTES */
+
+        .vote-table {
+            width: 100%;
+            margin-bottom: 12px;
+            border-collapse: collapse;
+        }
+
+        .vote-table th {
+            font-size: 12px;
+            color: #666;
+            padding-bottom: 4px;
+        }
+
+        .vote-table td {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            padding-bottom: 10px;
+        }
+
     </style>
 </head>
 
@@ -190,45 +244,77 @@
 <div class="container">
 
     <!-- LOGO -->
+
     <div class="logo">
         <img src="/static/img/bifrost.png" alt="logo">
     </div>
 
     <!-- NAV -->
+
     <div class="nav">
-        <a href="/review">Review</a>
-        <a href="/moderator">Moderator</a>
-        <a href="/leaderboard">Leaderboard</a>
+
+        <a href="/review">
+            Review
+        </a>
+
+        <a href="/moderator">
+            Moderator
+        </a>
+
+        <a href="/leaderboard">
+            Leaderboard
+        </a>
 
         {% if user %}
-            <a href="/logout">Logout</a>
+
+            <a href="/logout">
+                Logout
+            </a>
+
         {% else %}
-            <a href="/auth">Login</a>
+
+            <a href="/auth">
+                Login
+            </a>
+
         {% endif %}
+
     </div>
 
     <!-- USER -->
+
     {% if user %}
+
     <div class="userbar">
         Hello <b>{{ user[0] }}</b> ({{ user[2] }})
     </div>
+
     {% endif %}
 
-    <!-- PROGRESS (optional, injected by pages) -->
+    <!-- PROGRESS -->
+
     {% if progress_total is defined and progress_total > 0 %}
+
     <div class="progress-wrap">
+
         <div class="progress-bar">
+
             <div class="progress-fill"
                  style="width: {{ (progress_done / progress_total * 100) }}%;">
             </div>
+
         </div>
+
         <div class="progress-text">
             {{ progress_done }} / {{ progress_total }} completed
         </div>
+
     </div>
+
     {% endif %}
 
-    <!-- PAGE CONTENT -->
+    <!-- CONTENT -->
+
     {% block content %}{% endblock %}
 
 </div>
