@@ -1,12 +1,14 @@
+import os
 import sqlite3
 from flask import Flask, render_template, request, redirect
 
 app = Flask(__name__)
-DB = "spam.db"
+
+DB_PATH = os.getenv("DB_PATH", "/data/spam.db")
 
 
 def db():
-    return sqlite3.connect(DB)
+    return sqlite3.connect(DB_PATH)
 
 
 @app.route("/")
@@ -14,9 +16,6 @@ def home():
     return redirect("/review")
 
 
-# -------------------------
-# REVIEWER VIEW
-# -------------------------
 @app.route("/review")
 def review():
     reviewer = request.args.get("reviewer", "anonymous")
@@ -25,7 +24,12 @@ def review():
     c = conn.cursor()
 
     c.execute("""
-        SELECT id, body, spam_score
+        SELECT
+            id,
+            bug_title,
+            bug_url,
+            body,
+            spam_score
         FROM content_items
         WHERE id NOT IN (
             SELECT content_id FROM reviews WHERE reviewer = ?
@@ -61,17 +65,13 @@ def submit_review(item_id):
     return redirect(f"/review?reviewer={reviewer}")
 
 
-# -------------------------
-# MODERATOR VIEW
-# -------------------------
 @app.route("/moderator")
 def moderator():
-
     conn = db()
     c = conn.cursor()
 
     c.execute("""
-        SELECT c.id, c.body, c.spam_score, COUNT(r.id)
+        SELECT c.id, c.bug_title, c.body, c.spam_score, COUNT(r.id)
         FROM content_items c
         LEFT JOIN reviews r ON c.id = r.content_id
         WHERE c.id NOT IN (
@@ -112,18 +112,12 @@ def submit_moderator(item_id):
     return redirect("/moderator")
 
 
-# -------------------------
-# STATS
-# -------------------------
 @app.route("/stats/<reviewer>")
 def stats(reviewer):
-
     conn = db()
     c = conn.cursor()
 
-    c.execute("""
-        SELECT COUNT(*) FROM reviews WHERE reviewer = ?
-    """, (reviewer,))
+    c.execute("SELECT COUNT(*) FROM reviews WHERE reviewer = ?", (reviewer,))
     total = c.fetchone()[0]
 
     c.execute("""
@@ -146,12 +140,8 @@ def stats(reviewer):
                            incorrect=incorrect)
 
 
-# -------------------------
-# LEADERBOARD
-# -------------------------
 @app.route("/leaderboard")
 def leaderboard():
-
     conn = db()
     c = conn.cursor()
 

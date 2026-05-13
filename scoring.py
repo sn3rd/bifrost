@@ -1,7 +1,13 @@
 SPAM_KEYWORDS = [
-    "crypto", "bitcoin", "casino", "viagra",
-    "loan", "investment", "profit",
-    "seo", "marketing"
+    "crypto",
+    "bitcoin",
+    "casino",
+    "viagra",
+    "loan",
+    "investment",
+    "profit",
+    "seo",
+    "marketing"
 ]
 
 def compute_score(text: str) -> int:

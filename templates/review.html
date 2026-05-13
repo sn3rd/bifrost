@@ -6,8 +6,16 @@
 
 {% if item %}
 
-<p>{{ item[1] }}</p>
-<p>Spam score: {{ item[2] }}</p>
+<h2>
+    <a href="{{ item[2] }}" target="_blank">
+        {{ item[1] }}
+    </a>
+</h2>
+
+<p><strong>Message:</strong></p>
+<p>{{ item[3] }}</p>
+
+<p><strong>Spam score:</strong> {{ item[4] }}</p>
 
 <form method="post" action="/submit_review/{{ item[0] }}">
     <input type="hidden" name="reviewer" value="{{ reviewer }}">
@@ -18,7 +26,7 @@
 </form>
 
 {% else %}
-<p>No items.</p>
+<p>No items available.</p>
 {% endif %}
 
 {% endblock %}

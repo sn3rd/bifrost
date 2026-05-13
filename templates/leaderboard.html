@@ -2,22 +2,10 @@
 
 {% block content %}
 
-<h1>Leaderboard</h1>
+<h1>Stats: {{ reviewer }}</h1>
 
-<table border="1">
-<tr>
-<th>User</th><th>Total</th><th>Correct</th><th>Incorrect</th>
-</tr>
-
-{% for r in rows %}
-<tr>
-<td>{{ r[0] }}</td>
-<td>{{ r[1] }}</td>
-<td>{{ r[2] }}</td>
-<td>{{ r[3] }}</td>
-</tr>
-{% endfor %}
-
-</table>
+<p>Total: {{ total }}</p>
+<p>Correct: {{ correct }}</p>
+<p>Incorrect: {{ incorrect }}</p>
 
 {% endblock %}

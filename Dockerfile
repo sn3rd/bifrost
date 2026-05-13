@@ -7,8 +7,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN python init_db.py
+RUN mkdir -p /data
+
+ENV DB_PATH=/data/spam.db
 
 EXPOSE 8000
 
-CMD ["python", "app.py"]
+CMD ["sh", "-c", "python init_db.py && python app.py"]
