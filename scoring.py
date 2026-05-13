@@ -1,25 +1,18 @@
 SPAM_KEYWORDS = [
-    "crypto",
-    "bitcoin",
-    "casino",
-    "viagra",
-    "loan",
-    "investment",
-    "profit",
-    "seo",
-    "marketing",
+    "crypto", "bitcoin", "casino", "viagra",
+    "loan", "investment", "profit",
+    "seo", "marketing"
 ]
 
-def compute_score(text):
+def compute_score(text: str) -> int:
     score = 0
+    t = text.lower()
 
-    lower = text.lower()
-
-    for word in SPAM_KEYWORDS:
-        if word in lower:
+    for kw in SPAM_KEYWORDS:
+        if kw in t:
             score += 20
 
-    score += lower.count("http") * 10
+    score += t.count("http") * 10
 
     if len(text) < 20:
         score += 10

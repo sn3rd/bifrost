@@ -4,22 +4,20 @@
 
 <h1>Leaderboard</h1>
 
-<table>
-    <tr>
-        <th>Reviewer</th>
-        <th>Total</th>
-        <th>Correct</th>
-        <th>Incorrect</th>
-    </tr>
+<table border="1">
+<tr>
+<th>User</th><th>Total</th><th>Correct</th><th>Incorrect</th>
+</tr>
 
-    {% for row in rows %}
-    <tr>
-        <td>{{ row[0] }}</td>
-        <td>{{ row[1] }}</td>
-        <td>{{ row[2] or 0 }}</td>
-        <td>{{ row[3] or 0 }}</td>
-    </tr>
-    {% endfor %}
+{% for r in rows %}
+<tr>
+<td>{{ r[0] }}</td>
+<td>{{ r[1] }}</td>
+<td>{{ r[2] }}</td>
+<td>{{ r[3] }}</td>
+</tr>
+{% endfor %}
+
 </table>
 
 {% endblock %}

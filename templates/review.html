@@ -1,20 +1,24 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Launchpad Spam Review</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
+{% extends "base.html" %}
 
-<nav>
-    <a href="/review">Review</a>
-    <a href="/moderator">Moderator</a>
-    <a href="/leaderboard">Leaderboard</a>
-</nav>
+{% block content %}
 
-<hr>
+<h1>Review</h1>
 
-{% block content %}{% endblock %}
+{% if item %}
 
-</body>
-</html>
+<p>{{ item[1] }}</p>
+<p>Spam score: {{ item[2] }}</p>
+
+<form method="post" action="/submit_review/{{ item[0] }}">
+    <input type="hidden" name="reviewer" value="{{ reviewer }}">
+
+    <button name="verdict" value="spam">Spam</button>
+    <button name="verdict" value="ham">Not spam</button>
+    <button name="verdict" value="unknown">Unknown</button>
+</form>
+
+{% else %}
+<p>No items.</p>
+{% endif %}
+
+{% endblock %}

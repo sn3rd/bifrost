@@ -1,53 +1,101 @@
 import sqlite3
 import httpx
-from bs4 import BeautifulSoup
+import random
+import sys
 
 from scoring import compute_score
 
-URLS = [
-    "https://answers.launchpad.net/launchpad",
-    "https://bugs.launchpad.net/launchpad",
-]
+API = "https://api.launchpad.net/devel/bugs"
+DB = "spam.db"
 
-THRESHOLD = 30
 
-def scrape():
-    conn = sqlite3.connect("spam.db")
+def db():
+    return sqlite3.connect(DB)
+
+
+def get_scraped(conn):
+    c = conn.cursor()
+    c.execute("SELECT bug_id FROM scraped_bugs")
+    return {r[0] for r in c.fetchall()}
+
+
+def pick_bug_ids(n, seen):
+    ids = []
+    attempts = 0
+
+    while len(ids) < n and attempts < n * 20:
+        bid = random.randint(1, 200000)
+        if bid not in seen:
+            ids.append(bid)
+        attempts += 1
+
+    return ids
+
+
+def scrape_bug(conn, bug_id):
     c = conn.cursor()
 
-    for url in URLS:
-        try:
-            r = httpx.get(url, timeout=20)
-            soup = BeautifulSoup(r.text, "html.parser")
+    try:
+        r = httpx.get(f"{API}/{bug_id}", timeout=20)
+        if r.status_code != 200:
+            return
 
-            links = soup.find_all("a")
+        data = r.json()
 
-            for link in links[:50]:
-                text = link.get_text(strip=True)
+        messages_url = data.get("messages_link") or f"{API}/{bug_id}/messages"
+        mr = httpx.get(messages_url, timeout=20)
 
-                if not text:
-                    continue
+        if mr.status_code != 200:
+            return
 
-                score = compute_score(text)
+        messages = mr.json().get("entries", [])
 
-                if score >= THRESHOLD:
-                    c.execute("""
-                        INSERT INTO content_items
-                        (source_type, title, body, url, spam_score)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (
-                        "launchpad",
-                        text[:200],
-                        text,
-                        url,
-                        score
-                    ))
+        for m in messages:
+            body = m.get("content")
+            link = m.get("self_link")
 
-        except Exception as e:
-            print("Scrape error:", e)
+            if not body or not link:
+                continue
 
-    conn.commit()
+            score = compute_score(body)
+
+            c.execute("""
+                INSERT OR IGNORE INTO content_items
+                (bug_id, message_self_link, body, spam_score)
+                VALUES (?, ?, ?, ?)
+            """, (bug_id, link, body, score))
+
+        c.execute("""
+            INSERT OR IGNORE INTO scraped_bugs (bug_id)
+            VALUES (?)
+        """, (bug_id,))
+
+        conn.commit()
+        print(f"Scraped bug {bug_id}")
+
+    except Exception as e:
+        print(f"Error bug {bug_id}: {e}")
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python scraper.py <num_bugs>")
+        return
+
+    n = int(sys.argv[1])
+
+    conn = db()
+    seen = get_scraped(conn)
+
+    targets = pick_bug_ids(n, seen)
+
+    print(f"Scraping {len(targets)} bugs")
+
+    for bid in targets:
+        scrape_bug(conn, bid)
+
     conn.close()
 
+
 if __name__ == "__main__":
-    scrape()
+    main()
