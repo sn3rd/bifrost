@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card center">
+
+    <h2>User created 🎉</h2>
+
+    <p><b>{{ username }}</b></p>
+
+    <p>Your UUID:</p>
+
+    <code>{{ uuid }}</code>
+
+    <p class="danger">
+        Treat this like a password. If you lose it, you become a ghost reviewer.
+    </p>
+
+    <a href="/login/{{ uuid }}">
+        <button class="ham">Enter system</button>
+    </a>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card center">
+
+    <h2>Launchpad Moderation</h2>
+
+    <p class="danger">
+        ⚠ WARNING: UUIDs are insecure authentication tokens. Do NOT use real secrets.
+    </p>
+
+    {% if error %}
+        <p class="danger"><b>{{ error }}</b></p>
+    {% endif %}
+
+    <hr>
+
+    <h3>Create user</h3>
+
+    <form method="post">
+        <input name="username" placeholder="Username" required>
+        <input type="hidden" name="action" value="create">
+        <button class="ham" type="submit">Create & login</button>
+    </form>
+
+    <hr>
+
+    <h3>Login with UUID</h3>
+
+    <form method="post">
+        <input type="password" name="uuid" placeholder="UUID" required>
+        <input type="hidden" name="action" value="login">
+        <button class="ham" type="submit">Login</button>
+    </form>
+
+</div>
+
+{% endblock %}

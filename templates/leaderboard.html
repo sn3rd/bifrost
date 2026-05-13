@@ -2,23 +2,43 @@
 
 {% block content %}
 
-<h2>Leaderboard</h2>
+<div class="card">
 
-<table>
-<tr>
-    <th>User</th>
-    <th>Total</th>
-    <th>Correct</th>
-</tr>
+    <h2 class="center">Leaderboard</h2>
 
-{% for r in rows %}
-<tr>
-    <td>{{ r[0] }}</td>
-    <td>{{ r[1] }}</td>
-    <td>{{ r[2] }}</td>
-</tr>
-{% endfor %}
+    <table class="leaderboard-table">
 
-</table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Reviews</th>
+                <th>Correct</th>
+                <th>Accuracy</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for r in rows %}
+
+        {% set username = r[0] %}
+        {% set reviews = r[1] %}
+        {% set correct = r[2] %}
+        {% set accuracy = (correct / reviews * 100) if reviews else 0 %}
+
+        <tr>
+            <td class="user-cell">{{ username }}</td>
+            <td class="num">{{ reviews }}</td>
+            <td class="num">{{ correct }}</td>
+            <td class="num">{{ "%.1f"|format(accuracy) }}%</td>
+        </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
 
 {% endblock %}

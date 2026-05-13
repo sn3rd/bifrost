@@ -45,10 +45,6 @@ def pick_ids(n, seen):
     return out
 
 
-# -----------------------------
-# HEURISTIC (RE-ORIENTED)
-# -----------------------------
-
 SPAM_SIGNALS = [
     "http", "www.", "buy now", "crypto", "bitcoin",
     "loan", "casino", "viagra", "investment", "profit",
@@ -57,33 +53,20 @@ SPAM_SIGNALS = [
 
 
 def looks_like_spam(text: str) -> bool:
-    """
-    TRUE  -> spam / suspicious (SHOW IN REVIEW QUEUE)
-    FALSE -> likely clean (SKIP REVIEW QUEUE)
-    """
-
     if not text:
         return False
 
     t = text.lower()
 
-    # strong spam signals
     if any(s in t for s in SPAM_SIGNALS):
         return True
 
-    # link-heavy
     if t.count("http") >= 1:
         return True
 
-    # overly aggressive formatting
-    if len(text) > 0 and (text.count("!") > 5 or text.count("$") > 3):
-        return True
-
-    # extremely long weird blobs
     if len(text) > 5000:
         return True
 
-    # code/log heavy but still possibly spam-like injection attempts
     code_ratio = len(re.findall(r"[{}();=<>]", text)) / max(len(text), 1)
     if code_ratio > 0.15:
         return True
@@ -94,10 +77,6 @@ def looks_like_spam(text: str) -> bool:
 def classify(text: str) -> bool:
     return looks_like_spam(text)
 
-
-# -----------------------------
-# SCRAPER
-# -----------------------------
 
 def scrape_bug(conn, bug_id):
     c = conn.cursor()
@@ -135,34 +114,20 @@ def scrape_bug(conn, bug_id):
 
             is_spam = classify(body)
 
-            # ------------------------------------
-            # NEW RULE (your requirement)
-            # ------------------------------------
             if is_spam:
-                is_review_candidate = 1   # suspicious → REVIEW
-                log(f"[BUG {bug_id}][MSG {i}] SPAM-LIKE → REVIEW")
+                is_review_candidate = 1
+                log(f"[BUG {bug_id}][MSG {i}] SPAM → REVIEW")
             else:
-                is_review_candidate = 0   # clean → SKIP REVIEW
-                log(f"[BUG {bug_id}][MSG {i}] CLEAN → NOT REVIEW")
+                is_review_candidate = 0
+                log(f"[BUG {bug_id}][MSG {i}] CLEAN → SKIP REVIEW")
 
             c.execute("""
                 INSERT OR IGNORE INTO content_items
                 (bug_id, bug_title, bug_url, message_self_link, author, body, is_review_candidate)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
-                bug_id,
-                title,
-                url,
-                self_link,
-                author,
-                body,
-                is_review_candidate
+                bug_id, title, url, self_link, author, body, is_review_candidate
             ))
-
-            if c.rowcount == 0:
-                log(f"[BUG {bug_id}][MSG {i}] duplicate ignored")
-            else:
-                log(f"[BUG {bug_id}][MSG {i}] inserted")
 
         c.execute("INSERT OR IGNORE INTO scraped_bugs VALUES (?)", (bug_id,))
         conn.commit()

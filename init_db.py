@@ -12,7 +12,15 @@ def main():
     conn = db()
     c = conn.cursor()
 
-    # main content table
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        uuid TEXT UNIQUE,
+        role TEXT
+    )
+    """)
+
     c.execute("""
     CREATE TABLE IF NOT EXISTS content_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,17 +35,15 @@ def main():
     )
     """)
 
-    # reviews table
     c.execute("""
     CREATE TABLE IF NOT EXISTS reviews (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         content_id INTEGER,
-        reviewer TEXT,
+        reviewer_uuid TEXT,
         verdict TEXT
     )
     """)
 
-    # scraped bug tracking
     c.execute("""
     CREATE TABLE IF NOT EXISTS scraped_bugs (
         bug_id INTEGER PRIMARY KEY

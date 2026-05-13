@@ -1,18 +1,122 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect
+import uuid
+from flask import Flask, render_template, request, redirect, make_response
 
 app = Flask(__name__)
 
 DB_PATH = os.getenv("DB_PATH", "/data/spam.db")
 
 
+# ---------------- DB ----------------
+
 def db():
     return sqlite3.connect(DB_PATH)
 
 
+# ---------------- USER ----------------
+
+def get_user(conn, uuid_str):
+    c = conn.cursor()
+    c.execute("SELECT username, uuid, role FROM users WHERE uuid = ?", (uuid_str,))
+    return c.fetchone()
+
+
+def resolve_user():
+    uuid_str = request.cookies.get("uuid")
+    if not uuid_str:
+        return None
+
+    conn = db()
+    user = get_user(conn, uuid_str)
+    conn.close()
+    return user
+
+
+# ---------------- PROGRESS ----------------
+
+def get_review_progress(conn, reviewer_uuid):
+    c = conn.cursor()
+
+    c.execute("SELECT COUNT(*) FROM content_items WHERE is_review_candidate = 1")
+    total = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM reviews WHERE reviewer_uuid = ?", (reviewer_uuid,))
+    done = c.fetchone()[0]
+
+    return done, total
+
+
+def get_moderation_progress(conn):
+    c = conn.cursor()
+
+    c.execute("SELECT COUNT(*) FROM content_items WHERE is_review_candidate = 1")
+    total = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM content_items WHERE moderator_verdict IS NOT NULL")
+    done = c.fetchone()[0]
+
+    return done, total
+
+
+# ---------------- AUTH ----------------
+
+@app.route("/auth", methods=["GET", "POST"])
+def auth():
+    error = None
+
+    if request.method == "POST":
+        action = request.form.get("action")
+
+        conn = db()
+        c = conn.cursor()
+
+        if action == "create":
+            username = request.form["username"]
+            new_uuid = str(uuid.uuid4())
+
+            try:
+                c.execute("""
+                    INSERT INTO users (username, uuid, role)
+                    VALUES (?, ?, 'reviewer')
+                """, (username, new_uuid))
+                conn.commit()
+            except sqlite3.IntegrityError:
+                conn.close()
+                return render_template("auth.html", error="Username already exists")
+
+            conn.close()
+
+            resp = make_response(redirect("/review"))
+            resp.set_cookie("uuid", new_uuid)
+            return resp
+
+        if action == "login":
+            uuid_str = request.form["uuid"]
+
+            user = get_user(conn, uuid_str)
+            conn.close()
+
+            if not user:
+                return render_template("auth.html", error="Invalid UUID")
+
+            resp = make_response(redirect("/review"))
+            resp.set_cookie("uuid", uuid_str)
+            return resp
+
+    return render_template("auth.html", error=error)
+
+
+@app.route("/logout")
+def logout():
+    resp = make_response(redirect("/auth"))
+    resp.delete_cookie("uuid")
+    return resp
+
+
 # ---------------- REVIEW ----------------
-def get_random_item(conn, reviewer):
+
+def get_item(conn, reviewer_uuid):
     c = conn.cursor()
 
     c.execute("""
@@ -20,11 +124,11 @@ def get_random_item(conn, reviewer):
         FROM content_items
         WHERE is_review_candidate = 1
         AND id NOT IN (
-            SELECT content_id FROM reviews WHERE reviewer = ?
+            SELECT content_id FROM reviews WHERE reviewer_uuid = ?
         )
         ORDER BY RANDOM()
         LIMIT 1
-    """, (reviewer,))
+    """, (reviewer_uuid,))
 
     return c.fetchone()
 
@@ -36,60 +140,80 @@ def root():
 
 @app.route("/review")
 def review():
-    reviewer = request.args.get("user", "anonymous")
+    user = resolve_user()
+    if not user:
+        return redirect("/auth")
+
+    username, uuid_str, role = user
+
+    # ❌ moderators cannot review
+    if role != "reviewer":
+        return render_template(
+            "review.html",
+            user=user,
+            blocked=True,
+            block_message="Reviews are only available to reviewers."
+        )
 
     conn = db()
-    c = conn.cursor()
 
-    item = get_random_item(conn, reviewer)
-
-    c.execute("""
-        SELECT COUNT(*)
-        FROM content_items
-        WHERE is_review_candidate = 1
-        AND id NOT IN (
-            SELECT content_id FROM reviews WHERE reviewer = ?
-        )
-    """, (reviewer,))
-    remaining = c.fetchone()[0]
-
-    c.execute("SELECT COUNT(*) FROM content_items WHERE is_review_candidate = 1")
-    total = c.fetchone()[0]
+    item = get_item(conn, uuid_str)
+    done, total = get_review_progress(conn, uuid_str)
 
     conn.close()
 
-    progress = {
-        "total": total,
-        "done": total - remaining,
-        "remaining": remaining,
-        "percent": int(((total - remaining) / total) * 100) if total else 0
-    }
-
-    return render_template("review.html", item=item, user=reviewer, progress=progress)
+    return render_template(
+        "review.html",
+        item=item,
+        user=user,
+        progress_done=done,
+        progress_total=total,
+        blocked=False
+    )
 
 
 @app.route("/submit_review/<int:item_id>", methods=["POST"])
 def submit_review(item_id):
-    user = request.form["user"]
+    user = resolve_user()
+    if not user:
+        return redirect("/auth")
+
+    _, uuid_str, _ = user
     verdict = request.form["verdict"]
 
     conn = db()
     c = conn.cursor()
 
     c.execute("""
-        INSERT INTO reviews (content_id, reviewer, verdict)
+        INSERT INTO reviews (content_id, reviewer_uuid, verdict)
         VALUES (?, ?, ?)
-    """, (item_id, user, verdict))
+    """, (item_id, uuid_str, verdict))
 
     conn.commit()
     conn.close()
 
-    return redirect(f"/review?user={user}")
+    return redirect("/review")
 
 
 # ---------------- MODERATOR ----------------
+
 @app.route("/moderator")
 def moderator():
+    user = resolve_user()
+    if not user:
+        return redirect("/auth")
+
+    username, uuid_str, role = user
+
+    # ❌ reviewers cannot moderate
+    if role != "moderator":
+        return render_template(
+            "moderator.html",
+            user=user,
+            blocked=True,
+            block_message="Permission denied. Moderation is restricted to moderators only."
+        )
+
     conn = db()
     c = conn.cursor()
 
@@ -113,30 +237,31 @@ def moderator():
 
     item = c.fetchone()
 
-    c.execute("""
-        SELECT COUNT(*) FROM content_items
-        WHERE is_review_candidate = 1
-        AND moderator_verdict IS NULL
-    """)
-    remaining = c.fetchone()[0]
-
-    c.execute("SELECT COUNT(*) FROM content_items WHERE is_review_candidate = 1")
-    total = c.fetchone()[0]
+    done, total = get_moderation_progress(conn)
 
     conn.close()
 
-    progress = {
-        "total": total,
-        "done": total - remaining,
-        "remaining": remaining,
-        "percent": int(((total - remaining) / total) * 100) if total else 0
-    }
-
-    return render_template("moderator.html", item=item, progress=progress)
+    return render_template(
+        "moderator.html",
+        item=item,
+        user=user,
+        progress_done=done,
+        progress_total=total,
+        blocked=False
+    )
 
 
 @app.route("/submit_moderator/<int:item_id>", methods=["POST"])
 def submit_moderator(item_id):
+    user = resolve_user()
+    if not user:
+        return redirect("/auth")
+
+    _, _, role = user
+
+    if role != "moderator":
+        return "Permission denied", 403
+
     verdict = request.form["verdict"]
 
     conn = db()
@@ -155,6 +280,7 @@ def submit_moderator(item_id):
 
 
 # ---------------- LEADERBOARD ----------------
+
 @app.route("/leaderboard")
 def leaderboard():
     conn = db()
@@ -162,13 +288,15 @@ def leaderboard():
 
     c.execute("""
         SELECT
-            reviewer,
-            COUNT(*) as total,
-            SUM(CASE WHEN r.verdict = c.moderator_verdict THEN 1 ELSE 0 END) as correct
-        FROM reviews r
-        JOIN content_items c ON r.content_id = c.id
-        GROUP BY reviewer
-        ORDER BY total DESC, correct DESC
+            u.username,
+            COUNT(r.id),
+            SUM(CASE WHEN r.verdict = c.moderator_verdict THEN 1 ELSE 0 END)
+        FROM users u
+        LEFT JOIN reviews r ON u.uuid = r.reviewer_uuid
+        LEFT JOIN content_items c ON r.content_id = c.id
+        WHERE u.role != 'moderator'
+        GROUP BY u.username
+        ORDER BY COUNT(r.id) DESC
     """)
 
     rows = c.fetchall()

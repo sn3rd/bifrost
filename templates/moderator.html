@@ -2,61 +2,48 @@
 
 {% block content %}
 
-<div class="progress-wrap">
-    <div class="progress-bar">
-        <div class="progress-fill" style="width: {{ progress.percent }}%"></div>
-    </div>
-    <div class="progress-text">
-        {{ progress.done }} moderated · {{ progress.remaining }} remaining
-    </div>
-</div>
+{% if blocked %}
 
-{% if item %}
-
-<div class="card">
-
-    <div class="title">{{ item[1] }}</div>
-
-    <div class="meta">
-        Bug ID: {{ item[0] }} ·
-        <a href="{{ item[3] }}" target="_blank">Open bug</a>
-    </div>
-
-    <!--
-        ORDER ALIGNED WITH BUTTONS:
-        1. Not Spam
-        2. Not Sure
-        3. Spam
-    -->
-    <table>
-        <tr>
-            <th>Not Spam</th>
-            <th>Not Sure</th>
-            <th>Spam</th>
-        </tr>
-        <tr>
-            <td>{{ item[6] }}</td>
-            <td>{{ item[5] }}</td>
-            <td>{{ item[4] }}</td>
-        </tr>
-    </table>
-
-    <form method="post" action="/submit_moderator/{{ item[0] }}">
-        <div class="actions">
-            <button class="ham" name="verdict" value="not spam">Not Spam</button>
-            <button class="unsure" name="verdict" value="not sure">Not sure</button>
-            <button class="spam" name="verdict" value="spam">Spam</button>
-        </div>
-    </form>
-
-    <div class="body">
-        {{ item[2] }}
-    </div>
-
+<div class="card center">
+    <h2>Access restricted</h2>
+    <p class="danger">{{ block_message }}</p>
 </div>
 
 {% else %}
-<p>No items left for moderation.</p>
+
+<div class="card">
+
+    {% if item %}
+
+        <div class="title">{{ item[1] }}</div>
+
+        <div class="meta">
+            <a href="{{ item[3] }}" target="_blank">View bug</a>
+        </div>
+
+        <div class="body">{{ item[2] }}</div>
+
+        <div class="meta">
+            Votes:
+            Spam {{ item[4] }} |
+            Not sure {{ item[5] }} |
+            Not spam {{ item[6] }}
+        </div>
+
+        <form method="post" action="/submit_moderator/{{ item[0] }}">
+            <div class="actions">
+                <button name="verdict" value="not spam" class="ham">Not Spam</button>
+                <button name="verdict" value="not sure" class="unsure">Not Sure</button>
+                <button name="verdict" value="spam" class="spam">Spam</button>
+            </div>
+        </form>
+
+    {% else %}
+        <div class="center">No moderation items 🎉</div>
+    {% endif %}
+
+</div>
+
 {% endif %}
 
 {% endblock %}
