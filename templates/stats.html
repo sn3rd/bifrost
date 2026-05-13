@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Statistics for {{ reviewer }}</h1>
+
+<ul>
+    <li>Total reviews: {{ total }}</li>
+    <li>Correct reviews: {{ correct }}</li>
+    <li>Incorrect reviews: {{ incorrect }}</li>
+</ul>
+
+{% endblock %}

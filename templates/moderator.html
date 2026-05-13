@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Moderator Queue</h1>
+
+{% if item %}
+
+<h2>{{ item[1] }}</h2>
+
+<p>{{ item[2] }}</p>
+
+<p>Spam score: {{ item[3] }}</p>
+
+<p>User reviews: {{ item[4] }}</p>
+
+<form method="post" action="/submit_moderator/{{ item[0] }}">
+
+    <button name="verdict" value="spam">
+        Definitely spam
+    </button>
+
+    <button name="verdict" value="ham">
+        Definitely not spam
+    </button>
+
+    <button name="verdict" value="unknown">
+        I don't know
+    </button>
+
+</form>
+
+{% else %}
+
+<p>No items pending moderation.</p>
+
+{% endif %}
+
+{% endblock %}

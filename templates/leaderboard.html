@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Leaderboard</h1>
+
+<table>
+    <tr>
+        <th>Reviewer</th>
+        <th>Total</th>
+        <th>Correct</th>
+        <th>Incorrect</th>
+    </tr>
+
+    {% for row in rows %}
+    <tr>
+        <td>{{ row[0] }}</td>
+        <td>{{ row[1] }}</td>
+        <td>{{ row[2] or 0 }}</td>
+        <td>{{ row[3] or 0 }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
