@@ -4,10 +4,7 @@ import httpx
 import random
 import sys
 
-from scoring import compute_score
-
-API_BASE = "https://api.launchpad.net/devel/bugs"
-
+API = "https://api.launchpad.net/devel/bugs"
 DB_PATH = os.getenv("DB_PATH", "/data/spam.db")
 
 
@@ -17,49 +14,43 @@ def db():
 
 def ensure_schema(conn):
     c = conn.cursor()
-
     c.execute("""
     CREATE TABLE IF NOT EXISTS scraped_bugs (
         bug_id INTEGER PRIMARY KEY
     )
     """)
-
     conn.commit()
 
 
-def get_scraped(conn):
+def already_scraped(conn):
     c = conn.cursor()
     c.execute("SELECT bug_id FROM scraped_bugs")
     return {r[0] for r in c.fetchall()}
 
 
-def pick_bug_ids(n, seen):
-    ids = []
-    attempts = 0
-
-    while len(ids) < n and attempts < n * 20:
-        bid = random.randint(1, 200000)
-        if bid not in seen:
-            ids.append(bid)
-        attempts += 1
-
-    return ids
+def pick_ids(n, seen):
+    out = []
+    while len(out) < n:
+        x = random.randint(1, 200000)
+        if x not in seen:
+            out.append(x)
+    return out
 
 
 def scrape_bug(conn, bug_id):
     c = conn.cursor()
 
     try:
-        bug_url = f"{API_BASE}/{bug_id}"
-
+        bug_url = f"{API}/{bug_id}"
         r = httpx.get(bug_url, timeout=20)
+
         if r.status_code != 200:
             return
 
         bug = r.json()
 
-        bug_title = bug.get("title", f"Bug {bug_id}")
-        web_link = bug.get("web_link") or bug.get("self_link") or bug_url
+        title = bug.get("title", f"Bug {bug_id}")
+        url = bug.get("web_link") or bug.get("self_link") or bug_url
 
         messages_url = bug.get("messages_link") or f"{bug_url}/messages"
         mr = httpx.get(messages_url, timeout=20)
@@ -77,52 +68,32 @@ def scrape_bug(conn, bug_id):
             if not body or not self_link:
                 continue
 
-            score = compute_score(body)
-
             c.execute("""
                 INSERT OR IGNORE INTO content_items
-                (bug_id, bug_title, bug_url, message_self_link, author, body, spam_score)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                bug_id,
-                bug_title,
-                web_link,
-                self_link,
-                author,
-                body,
-                score
-            ))
+                (bug_id, bug_title, bug_url, message_self_link, author, body)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (bug_id, title, url, self_link, author, body))
 
-        c.execute("""
-            INSERT OR IGNORE INTO scraped_bugs (bug_id)
-            VALUES (?)
-        """, (bug_id,))
-
+        c.execute("INSERT OR IGNORE INTO scraped_bugs VALUES (?)", (bug_id,))
         conn.commit()
 
-        print(f"Scraped bug {bug_id}: {bug_title}")
+        print(f"Scraped {bug_id}")
 
     except Exception as e:
-        print(f"Error bug {bug_id}: {e}")
+        print("Error:", e)
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python scraper.py <num_bugs>")
-        return
-
     n = int(sys.argv[1])
 
     conn = db()
     ensure_schema(conn)
 
-    seen = get_scraped(conn)
-    targets = pick_bug_ids(n, seen)
+    seen = already_scraped(conn)
+    ids = pick_ids(n, seen)
 
-    print(f"Scraping {len(targets)} bugs...")
-
-    for bid in targets:
-        scrape_bug(conn, bid)
+    for i in ids:
+        scrape_bug(conn, i)
 
     conn.close()
 

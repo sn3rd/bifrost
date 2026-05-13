@@ -2,31 +2,46 @@
 
 {% block content %}
 
-<h1>Review</h1>
+<style>
+.card {
+    max-width: 800px;
+}
+.title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+</style>
 
 {% if item %}
 
-<h2>
-    <a href="{{ item[2] }}" target="_blank">
-        {{ item[1] }}
-    </a>
-</h2>
+<div class="card">
 
-<p><strong>Message:</strong></p>
-<p>{{ item[3] }}</p>
-
-<p><strong>Spam score:</strong> {{ item[4] }}</p>
+<h2 class="title">{{ item[1] }}</h2>
 
 <form method="post" action="/submit_review/{{ item[0] }}">
-    <input type="hidden" name="reviewer" value="{{ reviewer }}">
+    <input type="hidden" name="user" value="{{ user }}">
 
-    <button name="verdict" value="spam">Spam</button>
-    <button name="verdict" value="ham">Not spam</button>
-    <button name="verdict" value="unknown">Unknown</button>
+    <div class="buttons">
+        <button name="verdict" value="not spam">Not Spam</button>
+        <button name="verdict" value="not sure">Not sure</button>
+        <button name="verdict" value="spam">Definitely spam</button>
+    </div>
 </form>
 
+<p>{{ item[2] }}</p>
+
+<a href="{{ item[3] }}" target="_blank">View Bug</a>
+
+</div>
+
 {% else %}
-<p>No items available.</p>
+<p>No items left.</p>
 {% endif %}
 
 {% endblock %}

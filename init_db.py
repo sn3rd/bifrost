@@ -17,12 +17,11 @@ CREATE TABLE IF NOT EXISTS content_items (
     bug_url TEXT,
 
     message_self_link TEXT UNIQUE,
-
     author TEXT,
     body TEXT NOT NULL,
 
-    spam_score INTEGER DEFAULT 0,
-    moderator_verdict TEXT
+    moderator_verdict TEXT,
+    spam_score INTEGER DEFAULT 0
 )
 """)
 

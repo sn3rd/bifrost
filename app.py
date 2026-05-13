@@ -11,25 +11,11 @@ def db():
     return sqlite3.connect(DB_PATH)
 
 
-@app.route("/")
-def home():
-    return redirect("/review")
-
-
-@app.route("/review")
-def review():
-    reviewer = request.args.get("reviewer", "anonymous")
-
-    conn = db()
+def get_random_item(conn, reviewer):
     c = conn.cursor()
 
     c.execute("""
-        SELECT
-            id,
-            bug_title,
-            bug_url,
-            body,
-            spam_score
+        SELECT id, bug_title, body, bug_url
         FROM content_items
         WHERE id NOT IN (
             SELECT content_id FROM reviews WHERE reviewer = ?
@@ -38,17 +24,29 @@ def review():
         LIMIT 1
     """, (reviewer,))
 
-    item = c.fetchone()
+    return c.fetchone()
+
+
+@app.route("/")
+def root():
+    return redirect("/review")
+
+
+# ---------------- REVIEWER ----------------
+@app.route("/review")
+def review():
+    reviewer = request.args.get("user", "anonymous")
+
+    conn = db()
+    item = get_random_item(conn, reviewer)
     conn.close()
 
-    return render_template("review.html",
-                           item=item,
-                           reviewer=reviewer)
+    return render_template("review.html", item=item, user=reviewer)
 
 
 @app.route("/submit_review/<int:item_id>", methods=["POST"])
 def submit_review(item_id):
-    reviewer = request.form["reviewer"]
+    user = request.form["user"]
     verdict = request.form["verdict"]
 
     conn = db()
@@ -57,26 +55,34 @@ def submit_review(item_id):
     c.execute("""
         INSERT INTO reviews (content_id, reviewer, verdict)
         VALUES (?, ?, ?)
-    """, (item_id, reviewer, verdict))
+    """, (item_id, user, verdict))
 
     conn.commit()
     conn.close()
 
-    return redirect(f"/review?reviewer={reviewer}")
+    return redirect(f"/review?user={user}")
 
 
+# ---------------- MODERATOR ----------------
 @app.route("/moderator")
 def moderator():
     conn = db()
     c = conn.cursor()
 
     c.execute("""
-        SELECT c.id, c.bug_title, c.body, c.spam_score, COUNT(r.id)
+        SELECT
+            c.id,
+            c.bug_title,
+            c.body,
+            c.bug_url,
+
+            SUM(CASE WHEN r.verdict='spam' THEN 1 ELSE 0 END),
+            SUM(CASE WHEN r.verdict='not sure' THEN 1 ELSE 0 END),
+            SUM(CASE WHEN r.verdict='not spam' THEN 1 ELSE 0 END)
+
         FROM content_items c
         LEFT JOIN reviews r ON c.id = r.content_id
-        WHERE c.id NOT IN (
-            SELECT content_id FROM moderator_reviews
-        )
+        WHERE c.moderator_verdict IS NULL
         GROUP BY c.id
         ORDER BY COUNT(r.id) DESC
         LIMIT 1
@@ -96,11 +102,6 @@ def submit_moderator(item_id):
     c = conn.cursor()
 
     c.execute("""
-        INSERT INTO moderator_reviews (content_id, moderator, verdict)
-        VALUES (?, ?, ?)
-    """, (item_id, "moderator", verdict))
-
-    c.execute("""
         UPDATE content_items
         SET moderator_verdict = ?
         WHERE id = ?
@@ -112,34 +113,7 @@ def submit_moderator(item_id):
     return redirect("/moderator")
 
 
-@app.route("/stats/<reviewer>")
-def stats(reviewer):
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("SELECT COUNT(*) FROM reviews WHERE reviewer = ?", (reviewer,))
-    total = c.fetchone()[0]
-
-    c.execute("""
-        SELECT COUNT(*)
-        FROM reviews r
-        JOIN content_items c ON r.content_id = c.id
-        WHERE r.reviewer = ?
-        AND r.verdict = c.moderator_verdict
-    """, (reviewer,))
-    correct = c.fetchone()[0]
-
-    incorrect = total - correct
-
-    conn.close()
-
-    return render_template("stats.html",
-                           reviewer=reviewer,
-                           total=total,
-                           correct=correct,
-                           incorrect=incorrect)
-
-
+# ---------------- LEADERBOARD ----------------
 @app.route("/leaderboard")
 def leaderboard():
     conn = db()
@@ -149,12 +123,11 @@ def leaderboard():
         SELECT
             reviewer,
             COUNT(*) as total,
-            SUM(CASE WHEN r.verdict = c.moderator_verdict THEN 1 ELSE 0 END) as correct,
-            SUM(CASE WHEN r.verdict != c.moderator_verdict THEN 1 ELSE 0 END) as incorrect
+            SUM(CASE WHEN r.verdict = c.moderator_verdict THEN 1 ELSE 0 END) as correct
         FROM reviews r
-        LEFT JOIN content_items c ON r.content_id = c.id
+        JOIN content_items c ON r.content_id = c.id
         GROUP BY reviewer
-        ORDER BY total DESC, correct DESC, incorrect ASC
+        ORDER BY total DESC, correct DESC
     """)
 
     rows = c.fetchall()

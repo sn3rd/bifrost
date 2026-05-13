@@ -2,31 +2,30 @@
 
 {% block content %}
 
-<h1>Review</h1>
+<h2>Moderator View</h2>
 
 {% if item %}
 
-<h2>
-    <a href="{{ item[2] }}" target="_blank">
-        {{ item[1] }}
-    </a>
-</h2>
+<h3 class="title">{{ item[1] }}</h3>
 
-<p><strong>Message:</strong></p>
-<p>{{ item[3] }}</p>
+<div>
+    <button>Spam ({{ item[4] }})</button>
+    <button>Not sure ({{ item[5] }})</button>
+    <button>Not spam ({{ item[6] }})</button>
+</div>
 
-<p><strong>Spam score:</strong> {{ item[4] }}</p>
+<p>{{ item[2] }}</p>
 
-<form method="post" action="/submit_review/{{ item[0] }}">
-    <input type="hidden" name="reviewer" value="{{ reviewer }}">
-
+<form method="post" action="/submit_moderator/{{ item[0] }}">
     <button name="verdict" value="spam">Spam</button>
-    <button name="verdict" value="ham">Not spam</button>
-    <button name="verdict" value="unknown">Unknown</button>
+    <button name="verdict" value="not sure">Not sure</button>
+    <button name="verdict" value="not spam">Not Spam</button>
 </form>
 
+<a href="{{ item[3] }}" target="_blank">View Bug</a>
+
 {% else %}
-<p>No items available.</p>
+<p>No items to moderate.</p>
 {% endif %}
 
 {% endblock %}
