@@ -2,6 +2,15 @@
 
 {% block content %}
 
+<div class="progress-wrap">
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ progress.percent }}%"></div>
+    </div>
+    <div class="progress-text">
+        {{ progress.done }} moderated · {{ progress.remaining }} remaining
+    </div>
+</div>
+
 {% if item %}
 
 <div class="card">
@@ -13,26 +22,30 @@
         <a href="{{ item[3] }}" target="_blank">Open bug</a>
     </div>
 
-    <!-- MODERATOR VOTE STATS -->
+    <!--
+        ORDER ALIGNED WITH BUTTONS:
+        1. Not Spam
+        2. Not Sure
+        3. Spam
+    -->
     <table>
         <tr>
+            <th>Not Spam</th>
+            <th>Not Sure</th>
             <th>Spam</th>
-            <th>Not sure</th>
-            <th>Not spam</th>
         </tr>
         <tr>
-            <td>{{ item[4] }}</td>
-            <td>{{ item[5] }}</td>
             <td>{{ item[6] }}</td>
+            <td>{{ item[5] }}</td>
+            <td>{{ item[4] }}</td>
         </tr>
     </table>
 
-    <!-- BUTTONS TOP -->
     <form method="post" action="/submit_moderator/{{ item[0] }}">
         <div class="actions">
             <button class="ham" name="verdict" value="not spam">Not Spam</button>
             <button class="unsure" name="verdict" value="not sure">Not sure</button>
-            <button class="spam" name="verdict" value="spam">Definitely spam</button>
+            <button class="spam" name="verdict" value="spam">Spam</button>
         </div>
     </form>
 

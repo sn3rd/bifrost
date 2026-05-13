@@ -11,13 +11,15 @@ def db():
     return sqlite3.connect(DB_PATH)
 
 
+# ---------------- REVIEW ----------------
 def get_random_item(conn, reviewer):
     c = conn.cursor()
 
     c.execute("""
         SELECT id, bug_title, body, bug_url
         FROM content_items
-        WHERE id NOT IN (
+        WHERE is_review_candidate = 1
+        AND id NOT IN (
             SELECT content_id FROM reviews WHERE reviewer = ?
         )
         ORDER BY RANDOM()
@@ -32,16 +34,38 @@ def root():
     return redirect("/review")
 
 
-# ---------------- REVIEWER ----------------
 @app.route("/review")
 def review():
     reviewer = request.args.get("user", "anonymous")
 
     conn = db()
+    c = conn.cursor()
+
     item = get_random_item(conn, reviewer)
+
+    c.execute("""
+        SELECT COUNT(*)
+        FROM content_items
+        WHERE is_review_candidate = 1
+        AND id NOT IN (
+            SELECT content_id FROM reviews WHERE reviewer = ?
+        )
+    """, (reviewer,))
+    remaining = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM content_items WHERE is_review_candidate = 1")
+    total = c.fetchone()[0]
+
     conn.close()
 
-    return render_template("review.html", item=item, user=reviewer)
+    progress = {
+        "total": total,
+        "done": total - remaining,
+        "remaining": remaining,
+        "percent": int(((total - remaining) / total) * 100) if total else 0
+    }
+
+    return render_template("review.html", item=item, user=reviewer, progress=progress)
 
 
 @app.route("/submit_review/<int:item_id>", methods=["POST"])
@@ -75,23 +99,40 @@ def moderator():
             c.bug_title,
             c.body,
             c.bug_url,
-
             SUM(CASE WHEN r.verdict='spam' THEN 1 ELSE 0 END),
             SUM(CASE WHEN r.verdict='not sure' THEN 1 ELSE 0 END),
             SUM(CASE WHEN r.verdict='not spam' THEN 1 ELSE 0 END)
-
         FROM content_items c
         LEFT JOIN reviews r ON c.id = r.content_id
-        WHERE c.moderator_verdict IS NULL
+        WHERE c.is_review_candidate = 1
+        AND c.moderator_verdict IS NULL
         GROUP BY c.id
         ORDER BY COUNT(r.id) DESC
         LIMIT 1
     """)
 
     item = c.fetchone()
+
+    c.execute("""
+        SELECT COUNT(*) FROM content_items
+        WHERE is_review_candidate = 1
+        AND moderator_verdict IS NULL
+    """)
+    remaining = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM content_items WHERE is_review_candidate = 1")
+    total = c.fetchone()[0]
+
     conn.close()
 
-    return render_template("moderator.html", item=item)
+    progress = {
+        "total": total,
+        "done": total - remaining,
+        "remaining": remaining,
+        "percent": int(((total - remaining) / total) * 100) if total else 0
+    }
+
+    return render_template("moderator.html", item=item, progress=progress)
 
 
 @app.route("/submit_moderator/<int:item_id>", methods=["POST"])

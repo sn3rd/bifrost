@@ -2,6 +2,15 @@
 
 {% block content %}
 
+<div class="progress-wrap">
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ progress.percent }}%"></div>
+    </div>
+    <div class="progress-text">
+        {{ progress.done }} reviewed · {{ progress.remaining }} remaining
+    </div>
+</div>
+
 {% if item %}
 
 <div class="card">
@@ -13,7 +22,6 @@
         <a href="{{ item[3] }}" target="_blank">Open bug</a>
     </div>
 
-    <!-- BUTTONS MOVED TO TOP -->
     <form method="post" action="/submit_review/{{ item[0] }}">
         <input type="hidden" name="user" value="{{ user }}">
 
